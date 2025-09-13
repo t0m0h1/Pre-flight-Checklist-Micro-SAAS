@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+  <h3>Account</h3>
+  <p><strong>Email:</strong> {{ current_user.email }}<br/><strong>Name:</strong> {{ current_user.name }}</p>
+  <hr/>
+  <h5>Upload company logo</h5>
+  <form method="post" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.logo(class="form-control") }}
+    </div>
+    <button class="btn btn-primary">{{ form.submit.label }}</button>
+  </form>
+
+  {% if current_user.logo_filename %}
+    <hr/>
+    <h6>Current logo</h6>
+    <img src="{{ url_for('uploaded_file', filename=current_user.logo_filename) }}" style="max-width:200px;">
+  {% endif %}
+{% endblock %}
