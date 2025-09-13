@@ -101,65 +101,65 @@ class LogoForm(FlaskForm):
     submit = SubmitField("Upload")
 
 # Routes
-@app.route(\"/\")
+@app.route("/")
 def index():
     public = session.query(Checklist).filter_by(public=True).order_by(Checklist.created_at.desc()).limit(8).all()
-    return render_template(\"index.html\", public=public)
+    return render_template("index.html", public=public)
 
-@app.route(\"/register\", methods=[\"GET\",\"POST\"])
+@app.route("/register", methods=["GET","POST"])
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
         existing = session.query(User).filter_by(email=form.email.data.lower()).first()
         if existing:
-            flash(\"Account exists. Please login.\", \"warning\")
-            return redirect(url_for(\"login\"))
+            flash("Account exists. Please login.", "warning")
+            return redirect(url_for("login"))
         hashed = generate_password_hash(form.password.data)
         u = User(email=form.email.data.lower(), password=hashed, name=form.name.data)
         session.add(u)
         session.commit()
         login_user(u)
-        flash(\"Welcome! Your account was created.\", \"success\")
-        return redirect(url_for(\"dashboard\"))
-    return render_template(\"register.html\", form=form)
+        flash("Welcome! Your account was created.", "success")
+        return redirect(url_for("dashboard"))
+    return render_template("register.html", form=form)
 
-@app.route(\"/login\", methods=[\"GET\",\"POST\"])
+@app.route("/login", methods=["GET","POST"])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
         u = session.query(User).filter_by(email=form.email.data.lower()).first()
         if u and check_password_hash(u.password, form.password.data):
             login_user(u)
-            flash(\"Logged in.\", \"success\")
-            return redirect(url_for(\"dashboard\"))
-        flash(\"Invalid credentials.\", \"danger\")
-    return render_template(\"login.html\", form=form)
+            flash("Logged in.", "success")
+            return redirect(url_for("dashboard"))
+        flash("Invalid credentials.", "danger")
+    return render_template("login.html", form=form)
 
-@app.route(\"/logout\")
+@app.route("/logout")
 @login_required
 def logout():
     logout_user()
-    flash(\"Logged out.\", \"info\")
-    return redirect(url_for(\"index\"))
+    flash("Logged out.", "info")
+    return redirect(url_for("index"))
 
-@app.route(\"/dashboard\")
+@app.route("/dashboard")
 @login_required
 def dashboard():
     checklists = current_user.checklists
-    return render_template(\"dashboard.html\", checklists=checklists)
+    return render_template("dashboard.html", checklists=checklists)
 
-@app.route(\"/checklist/new\", methods=[\"GET\",\"POST\"])
+@app.route("/checklist/new", methods=["GET","POST"])
 @login_required
 def new_checklist():
     form = ChecklistForm()
     if form.validate_on_submit():
         cl = Checklist(user=current_user._get_current_object(), title=form.title.data, description=form.description.data, public=form.public.data)
         session.add(cl); session.commit()
-        flash(\"Checklist created.\", \"success\")
-        return redirect(url_for(\"edit_checklist\", checklist_id=cl.id))
-    return render_template(\"edit_checklist.html\", form=form, items=[])
+        flash("Checklist created.", "success")
+        return redirect(url_for("edit_checklist", checklist_id=cl.id))
+    return render_template("edit_checklist.html", form=form, items=[])
 
-@app.route(\"/checklist/<int:checklist_id>/edit\", methods=[\"GET\",\"POST\"])
+@app.route("/checklist/<int:checklist_id>/edit", methods=["GET","POST"])
 @login_required
 def edit_checklist(checklist_id):
     cl = session.query(Checklist).get(checklist_id)
@@ -172,11 +172,11 @@ def edit_checklist(checklist_id):
         cl.description = form.description.data
         cl.public = form.public.data
         session.commit()
-        flash(\"Saved.\", \"success\")
-        return redirect(url_for(\"dashboard\"))
-    return render_template(\"edit_checklist.html\", form=form, checklist=cl, items=cl.items, item_form=item_form)
+        flash("Saved.", "success")
+        return redirect(url_for("dashboard"))
+    return render_template("edit_checklist.html", form=form, checklist=cl, items=cl.items, item_form=item_form)
 
-@app.route(\"/checklist/<int:checklist_id>/item/add\", methods=[\"POST\"])
+@app.route("/checklist/<int:checklist_id>/item/add", methods=["POST"])
 @login_required
 def add_item(checklist_id):
     cl = session.query(Checklist).get(checklist_id)
@@ -187,9 +187,9 @@ def add_item(checklist_id):
         pos = max([i.position for i in cl.items], default=0) + 1
         it = ChecklistItem(checklist=cl, text=form.text.data, position=pos)
         session.add(it); session.commit()
-    return redirect(url_for(\"edit_checklist\", checklist_id=checklist_id))
+    return redirect(url_for("edit_checklist", checklist_id=checklist_id))
 
-@app.route(\"/checklist/<int:checklist_id>/item/<int:item_id>/delete\", methods=[\"POST\"])
+@app.route("/checklist/<int:checklist_id>/item/<int:item_id>/delete", methods=["POST"])
 @login_required
 def delete_item(checklist_id, item_id):
     cl = session.query(Checklist).get(checklist_id)
@@ -197,26 +197,26 @@ def delete_item(checklist_id, item_id):
     if not cl or not it or cl.user_id != current_user.id or it.checklist_id != cl.id:
         abort(404)
     session.delete(it); session.commit()
-    flash(\"Item deleted.\", \"info\")
-    return redirect(url_for(\"edit_checklist\", checklist_id=checklist_id))
+    flash("Item deleted.", "info")
+    return redirect(url_for("edit_checklist", checklist_id=checklist_id))
 
-@app.route(\"/account\", methods=[\"GET\",\"POST\"])
+@app.route("/account", methods=["GET","POST"])
 @login_required
 def account():
     form = LogoForm()
     if form.validate_on_submit():
-        f = request.files.get(\"logo\")
+        f = request.files.get("logo")
         if f:
             filename = secure_filename(f.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], f\"user_{current_user.id}_{filename}\")
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{current_user.id}_{filename}")
             f.save(save_path)
             current_user.logo_filename = os.path.basename(save_path)
             session.commit()
-            flash(\"Logo uploaded.\", \"success\")
-            return redirect(url_for(\"account\"))
-    return render_template(\"account.html\", form=form)
+            flash("Logo uploaded.", "success")
+            return redirect(url_for("account"))
+    return render_template("account.html", form=form)
 
-@app.route(\"/uploads/<filename>\")
+@app.route("/uploads/<filename>")
 def uploaded_file(filename):
     p = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     if not os.path.exists(p):
@@ -246,13 +246,13 @@ def generate_pdf(checklist: Checklist, user: User):
                 pass
 
     # Title
-    c.setFont(\"Helvetica-Bold\", 16)
+    c.setFont("Helvetica-Bold", 16)
     c.drawString(margin + 180, y - 10, checklist.title)
     y -= 40
 
     # Description
     if checklist.description:
-        c.setFont(\"Helvetica\", 10)
+        c.setFont("Helvetica", 10)
         text = c.beginText(margin, y)
         for line in checklist.description.splitlines():
             text.textLine(line)
@@ -261,18 +261,18 @@ def generate_pdf(checklist: Checklist, user: User):
         y -= 10
 
     # Items
-    c.setFont(\"Helvetica\", 11)
+    c.setFont("Helvetica", 11)
     for idx, item in enumerate(checklist.items, start=1):
         if y < margin + 40:
             c.showPage()
             y = height - margin
-            c.setFont(\"Helvetica\", 11)
-        c.drawString(margin, y, f\"{idx}. {item.text}\")
+            c.setFont("Helvetica", 11)
+        c.drawString(margin, y, f"{idx}. {item.text}")
         y -= 16
 
     # Footer
-    c.setFont(\"Helvetica-Oblique\", 8)
-    footer = f\"Generated {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} • Powered by ChecklistSaaS\"
+    c.setFont("Helvetica-Oblique", 8)
+    footer = f"Generated {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} • Powered by ChecklistSaaS"
     c.drawRightString(width - margin, margin / 2, footer)
 
     c.showPage()
@@ -280,42 +280,37 @@ def generate_pdf(checklist: Checklist, user: User):
     buffer.seek(0)
     return buffer
 
-@app.route(\"/checklist/<int:checklist_id>/download\")
+@app.route("/checklist/<int:checklist_id>/download")
 @login_required
 def download_checklist(checklist_id):
     cl = session.query(Checklist).get(checklist_id)
     if not cl:
         abort(404)
     if cl.user_id != current_user.id and not cl.public:
-        flash(\"This checklist is private.\", \"danger\")
-        return redirect(url_for(\"dashboard\"))
+        flash("This checklist is private.", "danger")
+        return redirect(url_for("dashboard"))
     pdf = generate_pdf(cl, current_user)
-    filename = f\"{secure_filename(cl.title)}.pdf\"
-    return send_file(pdf, download_name=filename, as_attachment=True, mimetype=\"application/pdf\")
+    filename = f"{secure_filename(cl.title)}.pdf"
+    return send_file(pdf, download_name=filename, as_attachment=True, mimetype="application/pdf")
 
-
-@app.route(\"/view/<int:checklist_id\")
-def temp_route():
-    return \"temp\"
-
-# Minimal public view
-@app.route(\"/view/<int:checklist_id>\")
+# Public view
+@app.route("/view/<int:checklist_id>")
 def view_public(checklist_id):
     cl = session.query(Checklist).get(checklist_id)
     if not cl or not cl.public:
         abort(404)
-    return render_template(\"public_view.html\", checklist=cl)
+    return render_template("public_view.html", checklist=cl)
 
 # Minimal deletion
-@app.route(\"/checklist/<int:checklist_id>/delete\", methods=[\"POST\"])
+@app.route("/checklist/<int:checklist_id>/delete", methods=["POST"])
 @login_required
 def delete_checklist(checklist_id):
     cl = session.query(Checklist).get(checklist_id)
     if not cl or cl.user_id != current_user.id:
         abort(404)
     session.delete(cl); session.commit()
-    flash(\"Checklist removed.\", \"info\")
-    return redirect(url_for(\"dashboard\"))
+    flash("Checklist removed.", "info")
+    return redirect(url_for("dashboard"))
 
-if __name__ == \"__main__\":
+if __name__ == "__main__":
     app.run(debug=True)
